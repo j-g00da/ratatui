@@ -1,5 +1,6 @@
 use core::ops::{Index, IndexMut};
 use core::{cmp, fmt};
+use alloc::vec::Vec;
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -80,7 +81,7 @@ impl Buffer {
     #[must_use]
     pub fn filled(area: Rect, cell: Cell) -> Self {
         let size = area.area() as usize;
-        let content = vec![cell; size];
+        let content = alloc::vec![cell; size];
         Self { area, content }
     }
 
@@ -485,7 +486,7 @@ impl Buffer {
         let previous_buffer = &self.content;
         let next_buffer = &other.content;
 
-        let mut updates: Vec<(u16, u16, &Cell)> = vec![];
+        let mut updates: Vec<(u16, u16, &Cell)> = alloc::vec![];
         // Cells invalidated by drawing/replacing preceding multi-width characters:
         let mut invalidated: usize = 0;
         // Cells from the current buffer to skip due to preceding multi-width characters taking
@@ -581,9 +582,9 @@ impl fmt::Debug for Buffer {
 
         f.write_str(",\n    content: [\n")?;
         let mut last_style = None;
-        let mut styles = vec![];
+        let mut styles = alloc::vec![];
         for (y, line) in self.content.chunks(self.area.width as usize).enumerate() {
-            let mut overwritten = vec![];
+            let mut overwritten = alloc::vec![];
             let mut skip: usize = 0;
             f.write_str("        \"")?;
             for (x, c) in line.iter().enumerate() {
@@ -660,7 +661,7 @@ mod tests {
     fn debug_grapheme_override() {
         let buffer = Buffer::with_lines(["a🦀b"]);
         let result = format!("{buffer:?}");
-        println!("{result}");
+        //println!("{result}");
         let expected = indoc::indoc!(
             r#"
             Buffer {

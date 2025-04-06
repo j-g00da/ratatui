@@ -1,4 +1,5 @@
 use core::fmt;
+use alloc::string::String;
 
 use crate::style::{Color, Modifier, Style};
 use crate::text::Span;

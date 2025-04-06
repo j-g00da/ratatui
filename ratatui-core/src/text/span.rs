@@ -1,4 +1,7 @@
-use alloc::borrow::Cow;
+use alloc::{
+    borrow::Cow,
+    string::ToString,
+};
 use core::fmt;
 
 use unicode_segmentation::UnicodeSegmentation;

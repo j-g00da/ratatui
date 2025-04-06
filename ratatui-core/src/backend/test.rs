@@ -3,12 +3,13 @@
 
 use core::fmt::{self, Write};
 use core::{iter, ops};
-use std::io;
+use alloc::string::String;
 
 use unicode_width::UnicodeWidthStr;
 
 use crate::backend::{Backend, ClearType, WindowSize};
 use crate::buffer::{Buffer, Cell};
+use crate::error::RatResult;
 use crate::layout::{Position, Rect, Size};
 
 /// A [`Backend`] implementation used for integration testing that renders to an memory buffer.
@@ -26,7 +27,7 @@ use crate::layout::{Position, Rect, Size};
 /// let mut backend = TestBackend::new(10, 2);
 /// backend.clear()?;
 /// backend.assert_buffer_lines(["          "; 2]);
-/// # std::io::Result::Ok(())
+/// # std::RatResult::Ok(())
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -46,7 +47,7 @@ pub struct TestBackend {
 fn buffer_view(buffer: &Buffer) -> String {
     let mut view = String::with_capacity(buffer.content.len() + buffer.area.height as usize * 3);
     for cells in buffer.content.chunks(buffer.area.width as usize) {
-        let mut overwritten = vec![];
+        let mut overwritten = alloc::vec![];
         let mut skip: usize = 0;
         view.push('"');
         for (x, c) in cells.iter().enumerate() {
@@ -169,7 +170,7 @@ impl TestBackend {
                 width: self.scrollback.area.width,
                 ..Rect::ZERO
             },
-            content: vec![],
+            content: alloc::vec![],
         };
         self.assert_scrollback(&expected);
     }
@@ -232,7 +233,7 @@ impl fmt::Display for TestBackend {
 }
 
 impl Backend for TestBackend {
-    fn draw<'a, I>(&mut self, content: I) -> io::Result<()>
+    fn draw<'a, I>(&mut self, content: I) -> RatResult<()>
     where
         I: Iterator<Item = (u16, u16, &'a Cell)>,
     {
@@ -242,31 +243,31 @@ impl Backend for TestBackend {
         Ok(())
     }
 
-    fn hide_cursor(&mut self) -> io::Result<()> {
+    fn hide_cursor(&mut self) -> RatResult<()> {
         self.cursor = false;
         Ok(())
     }
 
-    fn show_cursor(&mut self) -> io::Result<()> {
+    fn show_cursor(&mut self) -> RatResult<()> {
         self.cursor = true;
         Ok(())
     }
 
-    fn get_cursor_position(&mut self) -> io::Result<Position> {
+    fn get_cursor_position(&mut self) -> RatResult<Position> {
         Ok(self.pos.into())
     }
 
-    fn set_cursor_position<P: Into<Position>>(&mut self, position: P) -> io::Result<()> {
+    fn set_cursor_position<P: Into<Position>>(&mut self, position: P) -> RatResult<()> {
         self.pos = position.into().into();
         Ok(())
     }
 
-    fn clear(&mut self) -> io::Result<()> {
+    fn clear(&mut self) -> RatResult<()> {
         self.buffer.reset();
         Ok(())
     }
 
-    fn clear_region(&mut self, clear_type: ClearType) -> io::Result<()> {
+    fn clear_region(&mut self, clear_type: ClearType) -> RatResult<()> {
         let region = match clear_type {
             ClearType::All => return self.clear(),
             ClearType::AfterCursor => {
@@ -306,7 +307,7 @@ impl Backend for TestBackend {
     /// the cursor y position then that number of empty lines (at most the buffer's height in this
     /// case but this limit is instead replaced with scrolling in most backend implementations) will
     /// be added after the current position and the cursor will be moved to the last row.
-    fn append_lines(&mut self, line_count: u16) -> io::Result<()> {
+    fn append_lines(&mut self, line_count: u16) -> RatResult<()> {
         let Position { x: cur_x, y: cur_y } = self.get_cursor_position()?;
         let Rect { width, height, .. } = self.buffer.area;
 
@@ -343,11 +344,11 @@ impl Backend for TestBackend {
         Ok(())
     }
 
-    fn size(&self) -> io::Result<Size> {
+    fn size(&self) -> RatResult<Size> {
         Ok(self.buffer.area.as_size())
     }
 
-    fn window_size(&mut self) -> io::Result<WindowSize> {
+    fn window_size(&mut self) -> RatResult<WindowSize> {
         // Some arbitrary window pixel size, probably doesn't need much testing.
         const WINDOW_PIXEL_SIZE: Size = Size {
             width: 640,
@@ -359,12 +360,12 @@ impl Backend for TestBackend {
         })
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> RatResult<()> {
         Ok(())
     }
 
     #[cfg(feature = "scrolling-regions")]
-    fn scroll_region_up(&mut self, region: ops::Range<u16>, scroll_by: u16) -> io::Result<()> {
+    fn scroll_region_up(&mut self, region: ops::Range<u16>, scroll_by: u16) -> RatResult<()> {
         let width: usize = self.buffer.area.width.into();
         let cell_region_start = width * region.start.min(self.buffer.area.height) as usize;
         let cell_region_end = width * region.end.min(self.buffer.area.height) as usize;
@@ -410,7 +411,7 @@ impl Backend for TestBackend {
     }
 
     #[cfg(feature = "scrolling-regions")]
-    fn scroll_region_down(&mut self, region: ops::Range<u16>, scroll_by: u16) -> io::Result<()> {
+    fn scroll_region_down(&mut self, region: ops::Range<u16>, scroll_by: u16) -> RatResult<()> {
         let width: usize = self.buffer.area.width.into();
         let cell_region_start = width * region.start.min(self.buffer.area.height) as usize;
         let cell_region_end = width * region.end.min(self.buffer.area.height) as usize;
@@ -476,7 +477,7 @@ mod tests {
         let buffer = Buffer::with_lines([multi_byte_char]);
         assert_eq!(
             buffer_view(&buffer),
-            format!(
+            alloc::format!(
                 r#""{multi_byte_char}" Hidden by multi-width symbols: [(1, " ")]
 "#,
             )
@@ -519,7 +520,7 @@ mod tests {
     #[test]
     fn display() {
         let backend = TestBackend::new(10, 2);
-        assert_eq!(format!("{backend}"), "\"          \"\n\"          \"\n");
+        assert_eq!(alloc::format!("{backend}"), "\"          \"\n\"          \"\n");
     }
 
     #[test]
@@ -909,7 +910,7 @@ mod tests {
     }
 
     #[test]
-    fn append_lines_truncates_beyond_u16_max() -> io::Result<()> {
+    fn append_lines_truncates_beyond_u16_max() -> RatResult<()> {
         let mut backend = TestBackend::new(10, 5);
 
         // Fill the scrollback with 65535 + 10 lines.
@@ -919,7 +920,7 @@ mod tests {
                 backend.set_cursor_position(Position { x: 0, y: 4 })?;
                 backend.append_lines(1)?;
             }
-            let cells = format!("{row:>10}").chars().map(Cell::from).collect_vec();
+            let cells = alloc::format!("{row:>10}").chars().map(Cell::from).collect_vec();
             let content = cells
                 .iter()
                 .enumerate()

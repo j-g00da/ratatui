@@ -1,6 +1,7 @@
 use crate::buffer::Buffer;
 use crate::layout::Rect;
 use crate::style::Style;
+use alloc::string::String;
 
 /// A `Widget` is a type that can be drawn on a [`Buffer`] in a given [`Rect`].
 ///

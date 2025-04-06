@@ -1,4 +1,5 @@
 use alloc::rc::Rc;
+use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::iter;
 use core::num::NonZeroUsize;
@@ -36,11 +37,9 @@ type Cache = LruCache<(Rect, Layout), (Segments, Spacers)>;
 // calculations.
 const FLOAT_PRECISION_MULTIPLIER: f64 = 100.0;
 
-thread_local! {
-    static LAYOUT_CACHE: RefCell<Cache> = RefCell::new(Cache::new(
-        NonZeroUsize::new(Layout::DEFAULT_CACHE_SIZE).unwrap(),
-    ));
-}
+static LAYOUT_CACHE: RefCell<Cache> = RefCell::new(Cache::new(
+    NonZeroUsize::new(Layout::DEFAULT_CACHE_SIZE).unwrap(),
+));
 
 /// Represents the spacing between segments in a layout.
 ///
@@ -1008,7 +1007,7 @@ fn changes_to_rects(
 /// layout code - we should replace this with tracing in the future.
 #[allow(dead_code)]
 fn debug_elements(elements: &[Element], changes: &HashMap<Variable, f64>) {
-    let variables = format!(
+    alloc::format!(
         "{:?}",
         elements
             .iter()
@@ -1018,7 +1017,6 @@ fn debug_elements(elements: &[Element], changes: &HashMap<Variable, f64>) {
             ))
             .collect::<Vec<(f64, f64)>>()
     );
-    dbg!(variables);
 }
 
 /// A container used by the solver inside split

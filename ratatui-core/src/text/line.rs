@@ -1,6 +1,11 @@
 #![deny(missing_docs)]
 #![warn(clippy::pedantic, clippy::nursery, clippy::arithmetic_side_effects)]
-use alloc::borrow::Cow;
+use alloc::{
+    borrow::Cow,
+    string::ToString,
+    vec::Vec,
+    string::String,
+};
 use core::fmt;
 
 use unicode_truncate::UnicodeTruncateStr;
@@ -84,7 +89,7 @@ use crate::widgets::Widget;
 ///
 /// let line = Line::from("Hello, world!");
 /// let line = Line::from(String::from("Hello, world!"));
-/// let line = Line::from(vec![
+/// let line = Line::from(alloc::vec![
 ///     Span::styled("Hello", Style::new().blue()),
 ///     Span::raw(" world!"),
 /// ]);
@@ -301,7 +306,7 @@ impl<'a> Line<'a> {
     /// use ratatui_core::style::Stylize;
     /// use ratatui_core::text::Line;
     ///
-    /// let line = Line::default().spans(vec!["Hello".blue(), " world!".green()]);
+    /// let line = Line::default().spans(alloc::vec!["Hello".blue(), " world!".green()]);
     /// let line = Line::default().spans([1, 2, 3].iter().map(|i| format!("Item {}", i)));
     /// ```
     #[must_use = "method moves the value of self and returns the modified value"]
@@ -429,7 +434,7 @@ impl<'a> Line<'a> {
     /// use ratatui_core::style::Stylize;
     /// use ratatui_core::text::Line;
     ///
-    /// let line = Line::from(vec!["Hello".blue(), " world!".green()]);
+    /// let line = Line::from(alloc::vec!["Hello".blue(), " world!".green()]);
     /// assert_eq!(12, line.width());
     /// ```
     pub fn width(&self) -> usize {
@@ -457,7 +462,7 @@ impl<'a> Line<'a> {
     /// assert_eq!(
     ///     line.styled_graphemes(style)
     ///         .collect::<Vec<StyledGrapheme>>(),
-    ///     vec![
+    ///     alloc::vec![
     ///         StyledGrapheme::new("T", Style::default().fg(Color::Yellow).bg(Color::Black)),
     ///         StyledGrapheme::new("e", Style::default().fg(Color::Yellow).bg(Color::Black)),
     ///         StyledGrapheme::new("x", Style::default().fg(Color::Yellow).bg(Color::Black)),
@@ -615,7 +620,7 @@ impl<'a> From<Vec<Span<'a>>> for Line<'a> {
 
 impl<'a> From<Span<'a>> for Line<'a> {
     fn from(span: Span<'a>) -> Self {
-        Self::from(vec![span])
+        Self::from(alloc::vec![span])
     }
 }
 
@@ -652,7 +657,7 @@ impl<'a> core::ops::Add<Self> for Line<'a> {
     type Output = Text<'a>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Text::from(vec![self, rhs])
+        Text::from(alloc::vec![self, rhs])
     }
 }
 
@@ -883,10 +888,10 @@ mod tests {
 
     #[test]
     fn spans_vec() {
-        let line = Line::default().spans(vec!["Hello".blue(), " world!".green()]);
+        let line = Line::default().spans(alloc::vec!["Hello".blue(), " world!".green()]);
         assert_eq!(
             line.spans,
-            vec![
+            alloc::vec![
                 Span::styled("Hello", Style::new().blue()),
                 Span::styled(" world!", Style::new().green()),
             ]
@@ -898,7 +903,7 @@ mod tests {
         let line = Line::default().spans([1, 2, 3].iter().map(|i| format!("Item {i}")));
         assert_eq!(
             line.spans,
-            vec![
+            alloc::vec![
                 Span::raw("Item 1"),
                 Span::raw("Item 2"),
                 Span::raw("Item 3"),
@@ -923,7 +928,7 @@ mod tests {
 
     #[test]
     fn width() {
-        let line = Line::from(vec![
+        let line = Line::from(alloc::vec![
             Span::styled("My", Style::default().fg(Color::Yellow)),
             Span::raw(" text"),
         ]);
@@ -992,7 +997,7 @@ mod tests {
 
     #[test]
     fn from_vec() {
-        let spans = vec![
+        let spans = alloc::vec![
             Span::styled("Hello,", Style::default().fg(Color::Red)),
             Span::styled(" world!", Style::default().fg(Color::Green)),
         ];
@@ -1002,10 +1007,10 @@ mod tests {
 
     #[test]
     fn from_iter() {
-        let line = Line::from_iter(vec!["Hello".blue(), " world!".green()]);
+        let line = Line::from_iter(alloc::vec!["Hello".blue(), " world!".green()]);
         assert_eq!(
             line.spans,
-            vec![
+            alloc::vec![
                 Span::styled("Hello", Style::new().blue()),
                 Span::styled(" world!", Style::new().green()),
             ]
@@ -1019,7 +1024,7 @@ mod tests {
             .collect();
         assert_eq!(
             line.spans,
-            vec![
+            alloc::vec![
                 Span::styled("Hello", Style::new().blue()),
                 Span::styled(" world!", Style::new().green()),
             ]
@@ -1038,7 +1043,7 @@ mod tests {
         assert_eq!(
             Line::raw("Red").red() + Span::raw("blue").blue(),
             Line {
-                spans: vec![Span::raw("Red"), Span::raw("blue").blue()],
+                spans: alloc::vec![Span::raw("Red"), Span::raw("blue").blue()],
                 style: Style::new().red(),
                 alignment: None,
             },
@@ -1050,7 +1055,7 @@ mod tests {
         assert_eq!(
             Line::raw("Red").red() + Line::raw("Blue").blue(),
             Text {
-                lines: vec![Line::raw("Red").red(), Line::raw("Blue").blue()],
+                lines: alloc::vec![Line::raw("Red").red(), Line::raw("Blue").blue()],
                 style: Style::default(),
                 alignment: None,
             }
@@ -1064,7 +1069,7 @@ mod tests {
         assert_eq!(
             line,
             Line {
-                spans: vec![Span::raw("Red"), Span::raw("Blue").blue()],
+                spans: alloc::vec![Span::raw("Red"), Span::raw("Blue").blue()],
                 style: Style::new().red(),
                 alignment: None,
             },
@@ -1091,7 +1096,7 @@ mod tests {
 
     #[test]
     fn into_string() {
-        let line = Line::from(vec![
+        let line = Line::from(alloc::vec![
             Span::styled("Hello,", Style::default().fg(Color::Red)),
             Span::styled(" world!", Style::default().fg(Color::Green)),
         ]);
@@ -1108,7 +1113,7 @@ mod tests {
         const GREEN_ON_WHITE: Style = Style::new().fg(Color::Green).bg(Color::White);
         const BLUE_ON_WHITE: Style = Style::new().fg(Color::Blue).bg(Color::White);
 
-        let line = Line::from(vec![
+        let line = Line::from(alloc::vec![
             Span::styled("He", RED),
             Span::styled("ll", GREEN),
             Span::styled("o!", BLUE),
@@ -1118,7 +1123,7 @@ mod tests {
             .collect::<Vec<StyledGrapheme>>();
         assert_eq!(
             styled_graphemes,
-            vec![
+            alloc::vec![
                 StyledGrapheme::new("H", RED_ON_WHITE),
                 StyledGrapheme::new("e", RED_ON_WHITE),
                 StyledGrapheme::new("l", GREEN_ON_WHITE),
@@ -1131,7 +1136,7 @@ mod tests {
 
     #[test]
     fn display_line_from_vec() {
-        let line_from_vec = Line::from(vec![Span::raw("Hello,"), Span::raw(" world!")]);
+        let line_from_vec = Line::from(alloc::vec![Span::raw("Hello,"), Span::raw(" world!")]);
 
         assert_eq!(format!("{line_from_vec}"), "Hello, world!");
     }
@@ -1176,7 +1181,7 @@ mod tests {
         line.push_span("C");
         assert_eq!(
             line.spans,
-            vec![Span::raw("A"), Span::raw("B"), Span::raw("C")]
+            alloc::vec![Span::raw("A"), Span::raw("B"), Span::raw("C")]
         );
     }
 
@@ -1193,7 +1198,7 @@ mod tests {
 
         #[fixture]
         fn hello_world() -> Line<'static> {
-            Line::from(vec![
+            Line::from(alloc::vec![
                 Span::styled("Hello ", BLUE),
                 Span::styled("world!", GREEN),
             ])
@@ -1410,7 +1415,7 @@ mod tests {
         #[case::center(Alignment::Center, "XX🦀bc🦀XX")]
         #[case::right(Alignment::Right, "XXXbc🦀dXX")]
         fn render_truncates_away_from_0x0(#[case] alignment: Alignment, #[case] expected: &str) {
-            let line = Line::from(vec![Span::raw("a🦀b"), Span::raw("c🦀d")]).alignment(alignment);
+            let line = Line::from(alloc::vec![Span::raw("a🦀b"), Span::raw("c🦀d")]).alignment(alignment);
             // Fill buffer with stuff to ensure the output is indeed padded
             let mut buf = Buffer::filled(Rect::new(0, 0, 10, 1), Cell::new("X"));
             let area = Rect::new(2, 0, 6, 1);
@@ -1428,7 +1433,7 @@ mod tests {
         #[case::right_7(7, "🦀bc🦀d")]
         #[case::right_8(8, "a🦀bc🦀d")]
         fn render_right_aligned_multi_span(#[case] buf_width: u16, #[case] expected: &str) {
-            let line = Line::from(vec![Span::raw("a🦀b"), Span::raw("c🦀d")]).right_aligned();
+            let line = Line::from(alloc::vec![Span::raw("a🦀b"), Span::raw("c🦀d")]).right_aligned();
             let area = Rect::new(0, 0, buf_width, 1);
             // Fill buffer with stuff to ensure the output is indeed padded
             let mut buf = Buffer::filled(area, Cell::new("X"));
@@ -1481,7 +1486,7 @@ mod tests {
             // width == len as only ASCII is used here
             let factor = min_width.div_ceil(part.len());
 
-            let line = Line::from(vec![Span::raw(part); factor]).alignment(alignment);
+            let line = Line::from(alloc::vec![Span::raw(part); factor]).alignment(alignment);
 
             dbg!(line.width());
             assert!(line.width() >= min_width);
@@ -1505,7 +1510,7 @@ mod tests {
             // width == len as only ASCII is used here
             let factor = min_width.div_ceil(part.len());
 
-            let line = Line::from(vec![Span::raw(part.repeat(factor))]).alignment(alignment);
+            let line = Line::from(alloc::vec![Span::raw(part.repeat(factor))]).alignment(alignment);
 
             dbg!(line.width());
             assert!(line.width() >= min_width);
@@ -1529,7 +1534,7 @@ mod tests {
         /// a fixture used in the tests below to avoid repeating the same setup
         #[fixture]
         fn hello_world() -> Line<'static> {
-            Line::from(vec![
+            Line::from(alloc::vec![
                 Span::styled("Hello ", Color::Blue),
                 Span::styled("world!", Color::Green),
             ])
@@ -1569,7 +1574,7 @@ mod tests {
 
         #[test]
         fn into_iter_mut_ref() {
-            let mut hello_world = Line::from(vec![
+            let mut hello_world = Line::from(alloc::vec![
                 Span::styled("Hello ", Color::Blue),
                 Span::styled("world!", Color::Green),
             ]);
@@ -1590,7 +1595,7 @@ mod tests {
 
         #[rstest]
         fn for_loop_mut_ref() {
-            let mut hello_world = Line::from(vec![
+            let mut hello_world = Line::from(alloc::vec![
                 Span::styled("Hello ", Color::Blue),
                 Span::styled("world!", Color::Green),
             ]);
@@ -1627,14 +1632,14 @@ mod tests {
         r#"Line::from(Span::from("Hello, world!").yellow())"#
     )]
     #[case::styled_line_and_span(
-        Line::from(vec![
+        Line::from(alloc::vec![
             Span::styled("Hello", Color::Yellow),
             Span::styled(" world!", Color::Green),
         ]).italic(),
         r#"Line::from_iter([Span::from("Hello").yellow(), Span::from(" world!").green()]).italic()"#
     )]
     #[case::spans_vec(
-        Line::from(vec![
+        Line::from(alloc::vec![
             Span::styled("Hello", Color::Blue),
             Span::styled(" world!", Color::Green),
         ]),
