@@ -7,7 +7,8 @@ use ratatui_core::style::{Style, Styled};
 use ratatui_core::symbols;
 use ratatui_core::widgets::Widget;
 use strum::{Display, EnumString};
-
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use crate::block::{Block, BlockExt};
 
 /// Widget to render a sparkline over one or more lines.

@@ -1,22 +1,22 @@
 use alloc::rc::Rc;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::iter;
 use core::num::NonZeroUsize;
-
-use hashbrown::HashMap;
-use itertools::Itertools;
-use kasuari::WeightedRelation::{EQ, GE, LE};
-use kasuari::{AddConstraintError, Expression, Solver, Strength, Variable};
-use lru::LruCache;
 
 use self::strengths::{
     ALL_SEGMENT_GROW, FILL_GROW, GROW, LENGTH_SIZE_EQ, MAX_SIZE_EQ, MAX_SIZE_LE, MIN_SIZE_EQ,
     MIN_SIZE_GE, PERCENTAGE_SIZE_EQ, RATIO_SIZE_EQ, SPACER_SIZE_EQ, SPACE_GROW,
 };
 use crate::layout::{Constraint, Direction, Flex, Margin, Rect};
+use hashbrown::HashMap;
+use itertools::Itertools;
+use kasuari::WeightedRelation::{EQ, GE, LE};
+use kasuari::{AddConstraintError, Expression, Solver, Strength, Variable};
+use lru::LruCache;
 
-type Rects = Rc<[Rect]>;
+type Rects = Arc<[Rect]>;
 type Segments = Rects;
 type Spacers = Rects;
 // The solution to a Layout solve contains two `Rects`, where `Rects` is effectively a `[Rect]`.
@@ -37,9 +37,31 @@ type Cache = LruCache<(Rect, Layout), (Segments, Spacers)>;
 // calculations.
 const FLOAT_PRECISION_MULTIPLIER: f64 = 100.0;
 
-static LAYOUT_CACHE: RefCell<Cache> = RefCell::new(Cache::new(
-    NonZeroUsize::new(Layout::DEFAULT_CACHE_SIZE).unwrap(),
-));
+// extern crate std;
+// use std::thread_local;
+//
+// thread_local! {
+//     static LAYOUT_CACHE: RefCell<Cache> = RefCell::new(Cache::new(
+//         NonZeroUsize::new(Layout::DEFAULT_CACHE_SIZE).unwrap(),
+//     ));
+// }
+
+use critical_section::Mutex;
+// use lazy_static::lazy_static;
+//
+// lazy_static! {
+//     static ref LAYOUT_CACHE: Mutex<Cache> = Mutex::new(LruCache::new(
+//         NonZeroUsize::new(Layout::DEFAULT_CACHE_SIZE).unwrap(),
+//     ));
+// }
+
+use once_cell::sync::Lazy;
+
+static LAYOUT_CACHE: Lazy<Mutex<RefCell<Cache>>> = Lazy::new(|| {
+    Mutex::new(RefCell::new(LruCache::new(
+        NonZeroUsize::new(Layout::DEFAULT_CACHE_SIZE).unwrap(),
+    )))
+});
 
 /// Represents the spacing between segments in a layout.
 ///
@@ -277,7 +299,10 @@ impl Layout {
     ///
     /// By default, the cache size is [`Self::DEFAULT_CACHE_SIZE`].
     pub fn init_cache(cache_size: NonZeroUsize) {
-        LAYOUT_CACHE.with_borrow_mut(|c| c.resize(cache_size));
+        critical_section::with(|cs| {
+            let mut cache = LAYOUT_CACHE.borrow_ref_mut(cs);
+            cache.resize(cache_size)
+        });
     }
 
     /// Set the direction of the layout.
@@ -649,9 +674,12 @@ impl Layout {
     /// );
     /// ```
     pub fn split_with_spacers(&self, area: Rect) -> (Segments, Spacers) {
-        LAYOUT_CACHE.with_borrow_mut(|c| {
+        critical_section::with(|cs| {
+            let mut cache = LAYOUT_CACHE.borrow_ref_mut(cs);
+
             let key = (area, self.clone());
-            c.get_or_insert(key, || self.try_split(area).expect("failed to split"))
+            cache
+                .get_or_insert(key, || self.try_split(area).expect("failed to split"))
                 .clone()
         })
     }
@@ -1171,6 +1199,8 @@ mod strengths {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::borrow::ToOwned;
+    use alloc::vec;
 
     #[test]
     // The compiler will optimize out the comparisons, but this ensures that the constants are
@@ -1193,12 +1223,12 @@ mod tests {
 
     #[test]
     fn cache_size() {
-        LAYOUT_CACHE.with_borrow(|c| {
+        LAYOUT_CACHE.lock(|c| {
             assert_eq!(c.cap().get(), Layout::DEFAULT_CACHE_SIZE);
         });
 
         Layout::init_cache(NonZeroUsize::new(10).unwrap());
-        LAYOUT_CACHE.with_borrow(|c| {
+        LAYOUT_CACHE.lock(|c| {
             assert_eq!(c.cap().get(), 10);
         });
     }
@@ -1401,6 +1431,9 @@ mod tests {
     /// - underflow: constraint is for less than the full space
     /// - overflow: constraint is for more than the full space
     mod split {
+        use alloc::string::ToString;
+        use alloc::vec;
+        use alloc::vec::Vec;
         use core::ops::Range;
 
         use itertools::Itertools;

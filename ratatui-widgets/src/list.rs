@@ -1,5 +1,7 @@
 //! The [`List`] widget is used to display a list of items and allows selecting one or multiple
 //! items.
+
+use alloc::vec::Vec;
 use ratatui_core::style::{Style, Styled};
 use ratatui_core::text::Line;
 use strum::{Display, EnumString};

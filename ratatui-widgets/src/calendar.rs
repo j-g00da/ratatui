@@ -15,7 +15,8 @@ use ratatui_core::style::Style;
 use ratatui_core::text::{Line, Span};
 use ratatui_core::widgets::Widget;
 use time::{Date, Duration, OffsetDateTime};
-
+use alloc::format;
+use alloc::vec::Vec;
 use crate::block::{Block, BlockExt};
 
 /// Display a month calendar for the month containing `display_date`

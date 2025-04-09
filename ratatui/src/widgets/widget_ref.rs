@@ -1,3 +1,4 @@
+use alloc::string::String;
 use super::Widget;
 use crate::buffer::Buffer;
 use crate::layout::Rect;

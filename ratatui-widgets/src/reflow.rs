@@ -1,5 +1,7 @@
 //! Internal module for reflowing text to fit into a certain width.
 use alloc::collections::VecDeque;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::mem;
 
 use ratatui_core::layout::Alignment;

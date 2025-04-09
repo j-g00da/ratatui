@@ -1,4 +1,6 @@
 //! The [`Chart`] widget is used to plot one or more [`Dataset`] in a cartesian coordinate system.
+
+use alloc::vec::Vec;
 use core::cmp::max;
 use core::ops::Not;
 

@@ -59,6 +59,9 @@ thiserror = "2"
 unicode-segmentation.workspace = true
 unicode-truncate = "2"
 unicode-width.workspace = true
+critical-section = "1.2.0"
+lazy_static = "1.5.0"
+once_cell = "1.21.3"
 
 [dev-dependencies]
 pretty_assertions.workspace = true
