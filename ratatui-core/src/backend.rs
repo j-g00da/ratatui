@@ -100,6 +100,8 @@
 //! [Examples]: https://github.com/ratatui/ratatui/tree/main/ratatui/examples/README.md
 //! [Backend Comparison]: https://ratatui.rs/concepts/backends/comparison/
 //! [Ratatui Website]: https://ratatui.rs
+use core::ops;
+
 use strum::{Display, EnumString};
 
 use crate::buffer::Cell;
@@ -367,7 +369,7 @@ pub trait Backend {
     #[cfg(feature = "scrolling-regions")]
     fn scroll_region_up(
         &mut self,
-        region: core::ops::Range<u16>,
+        region: ops::Range<u16>,
         line_count: u16,
     ) -> Result<(), Self::Error>;
 
@@ -392,7 +394,7 @@ pub trait Backend {
     #[cfg(feature = "scrolling-regions")]
     fn scroll_region_down(
         &mut self,
-        region: core::ops::Range<u16>,
+        region: ops::Range<u16>,
         line_count: u16,
     ) -> Result<(), Self::Error>;
 }

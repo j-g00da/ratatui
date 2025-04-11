@@ -2,7 +2,7 @@
 //! It is used in the integration tests to verify the correctness of the library.
 
 use core::fmt::{self, Write};
-use core::iter;
+use core::{iter, ops};
 
 use unicode_width::UnicodeWidthStr;
 
@@ -378,7 +378,7 @@ impl Backend for TestBackend {
     #[cfg(feature = "scrolling-regions")]
     fn scroll_region_up(
         &mut self,
-        region: core::ops::Range<u16>,
+        region: ops::Range<u16>,
         scroll_by: u16,
     ) -> Result<(), Self::Error> {
         let width: usize = self.buffer.area.width.into();
@@ -428,7 +428,7 @@ impl Backend for TestBackend {
     #[cfg(feature = "scrolling-regions")]
     fn scroll_region_down(
         &mut self,
-        region: core::ops::Range<u16>,
+        region: ops::Range<u16>,
         scroll_by: u16,
     ) -> Result<(), Self::Error> {
         let width: usize = self.buffer.area.width.into();
@@ -1043,7 +1043,7 @@ mod tests {
         #[case([A, B, C, D, E], 2..2, 2, [],                    [A, B, C, D, E])]
         fn scroll_region_up<const L: usize, const M: usize, const N: usize>(
             #[case] initial_screen: [&'static str; L],
-            #[case] range: core::ops::Range<u16>,
+            #[case] range: ops::Range<u16>,
             #[case] scroll_by: u16,
             #[case] expected_scrollback: [&'static str; M],
             #[case] expected_buffer: [&'static str; N],
@@ -1077,7 +1077,7 @@ mod tests {
         #[case([A, B, C, D, E], 2..2, 2, [A, B, C, D, E])]
         fn scroll_region_down<const M: usize, const N: usize>(
             #[case] initial_screen: [&'static str; M],
-            #[case] range: core::ops::Range<u16>,
+            #[case] range: ops::Range<u16>,
             #[case] scroll_by: u16,
             #[case] expected_buffer: [&'static str; N],
         ) {

@@ -11,23 +11,17 @@ use ratatui_crossterm::{CrosstermBackend, CrosstermBackendError};
 #[derive(thiserror::Error, Debug)]
 pub enum InitializationError {
     #[error("Backend error: {0}")]
-    BackendError(#[from] DefaultBackendError),
+    BackendError(#[from] CrosstermBackendError),
     #[error("IO Error: {0}")]
     IoError(#[from] io::Error),
 }
-
-/// A type alias for the default backend error type.
-pub type DefaultBackendError = CrosstermBackendError;
-
-/// A type alias for the default backend type.
-pub type DefaultBackend = CrosstermBackend<Stdout>;
 
 /// A type alias for the default terminal type.
 ///
 /// This is a [`Terminal`] using the [`CrosstermBackend`] which writes to [`Stdout`]. This is a
 /// reasonable default for most applications. To use a different backend or output stream, instead
 /// use [`Terminal`] and a [backend][`crate::backend`] of your choice directly.
-pub type DefaultTerminal = Terminal<DefaultBackend>;
+pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
 
 /// Initialize a terminal with reasonable defaults for most applications.
 ///

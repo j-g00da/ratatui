@@ -250,7 +250,6 @@ where
             }
             string.push_str(cell.symbol());
         }
-
         write!(
             self.writer,
             "{string}{}{}{}",
