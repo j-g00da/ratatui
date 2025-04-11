@@ -29,6 +29,34 @@ use termwiz::surface::{Change, CursorVisibility, Position as TermwizPosition};
 use termwiz::terminal::buffered::BufferedTerminal;
 use termwiz::terminal::{ScreenSize, SystemTerminal, Terminal};
 
+/// Represents errors that can occur in the `TermwizBackend`.
+///
+/// This enum encapsulates different types of errors that may arise while using the
+/// `TermwizBackend`, such as I/O errors or unsupported clear types.
+#[derive(thiserror::Error, Debug)]
+pub enum TermwizBackendError {
+    /// Represents an I/O error.
+    #[error("IO Error: {0}")]
+    IoErr(#[from] io::Error),
+    /// Represents an error originating in the termwiz library.
+    #[error("Termwiz Error: {0}")]
+    TermwizError(#[from] termwiz::Error),
+    /// Represents an error when a specific clear type is not supported.
+    #[error("clear_type [{0:?}] not supported with this backend")]
+    ClearTypeNotSupported(ClearType),
+}
+
+impl ratatui_core::backend::Error for TermwizBackendError {
+    fn kind(&self) -> ratatui_core::backend::ErrorKind {
+        match self {
+            Self::IoErr(_) | Self::TermwizError(_) => ratatui_core::backend::ErrorKind::Other,
+            Self::ClearTypeNotSupported(_) => {
+                ratatui_core::backend::ErrorKind::ClearTypeNotSupported
+            }
+        }
+    }
+}
+
 /// A [`Backend`] implementation that uses [Termwiz] to render to the terminal.
 ///
 /// The `TermwizBackend` struct is a wrapper around a [`BufferedTerminal`], which is used to send
@@ -119,7 +147,7 @@ impl TermwizBackend {
 }
 
 impl Backend for TermwizBackend {
-    type Error = io::Error;
+    type Error = TermwizBackendError;
 
     fn draw<'a, I>(&mut self, content: I) -> Result<(), Self::Error>
     where
@@ -218,22 +246,19 @@ impl Backend for TermwizBackend {
         Ok(())
     }
 
-    fn clear(&mut self) -> Result<(), Self::Error> {
-        self.buffered_terminal
-            .add_change(Change::ClearScreen(termwiz::color::ColorAttribute::Default));
-        Ok(())
-    }
-
     fn clear_region(&mut self, clear_type: ClearType) -> Result<(), Self::Error> {
         match clear_type {
-            ClearType::All => self.clear(),
+            ClearType::All => {
+                self.buffered_terminal
+                    .add_change(Change::ClearScreen(termwiz::color::ColorAttribute::Default));
+                Ok(())
+            }
             ClearType::AfterCursor
             | ClearType::BeforeCursor
             | ClearType::CurrentLine
-            | ClearType::UntilNewLine => Err(Self::Error::new(
-                io::ErrorKind::Other,
-                format!("clear_type [{clear_type:?}] not supported with this backend"),
-            )),
+            | ClearType::UntilNewLine => {
+                Err(TermwizBackendError::ClearTypeNotSupported(clear_type))
+            }
         }
     }
 
@@ -248,11 +273,7 @@ impl Backend for TermwizBackend {
             rows,
             xpixel,
             ypixel,
-        } = self
-            .buffered_terminal
-            .terminal()
-            .get_screen_size()
-            .map_err(|e| Self::Error::new(io::ErrorKind::Other, e))?;
+        } = self.buffered_terminal.terminal().get_screen_size()?;
         Ok(WindowSize {
             columns_rows: Size {
                 width: u16_max(cols),
@@ -266,9 +287,7 @@ impl Backend for TermwizBackend {
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
-        self.buffered_terminal
-            .flush()
-            .map_err(|e| Self::Error::new(io::ErrorKind::Other, e))?;
+        self.buffered_terminal.flush()?;
         Ok(())
     }
 

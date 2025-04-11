@@ -3,13 +3,23 @@
 
 use core::fmt::{self, Write};
 use core::{iter, ops};
-use std::io;
 
 use unicode_width::UnicodeWidthStr;
 
+use super::{Error, ErrorKind};
 use crate::backend::{Backend, ClearType, WindowSize};
 use crate::buffer::{Buffer, Cell};
 use crate::layout::{Position, Rect, Size};
+
+/// The error type for [`TestBackend`].
+#[derive(thiserror::Error, Debug)]
+pub enum TestBackendError {}
+
+impl Error for TestBackendError {
+    fn kind(&self) -> ErrorKind {
+        match *self {}
+    }
+}
 
 /// A [`Backend`] implementation used for integration testing that renders to an memory buffer.
 ///
@@ -232,7 +242,7 @@ impl fmt::Display for TestBackend {
 }
 
 impl Backend for TestBackend {
-    type Error = io::Error;
+    type Error = TestBackendError;
 
     fn draw<'a, I>(&mut self, content: I) -> Result<(), Self::Error>
     where
@@ -919,7 +929,7 @@ mod tests {
     }
 
     #[test]
-    fn append_lines_truncates_beyond_u16_max() -> io::Result<()> {
+    fn append_lines_truncates_beyond_u16_max() -> Result<(), TestBackendError> {
         let mut backend = TestBackend::new(10, 5);
 
         // Fill the scrollback with 65535 + 10 lines.

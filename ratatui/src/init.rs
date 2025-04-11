@@ -5,7 +5,16 @@ use ratatui_crossterm::crossterm::execute;
 use ratatui_crossterm::crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use ratatui_crossterm::CrosstermBackend;
+use ratatui_crossterm::{CrosstermBackend, CrosstermBackendError};
+
+/// Represents errors that can occur during initialization
+#[derive(thiserror::Error, Debug)]
+pub enum InitializationError {
+    #[error("Backend error: {0}")]
+    BackendError(#[from] CrosstermBackendError),
+    #[error("IO Error: {0}")]
+    IoError(#[from] io::Error),
+}
 
 /// A type alias for the default terminal type.
 ///
@@ -75,14 +84,14 @@ pub fn init() -> DefaultTerminal {
 ///
 /// ```no_run
 /// let terminal = ratatui::try_init()?;
-/// # Ok::<(), std::io::Error>(())
+/// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
-pub fn try_init() -> io::Result<DefaultTerminal> {
+pub fn try_init() -> Result<DefaultTerminal, InitializationError> {
     set_panic_hook();
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout());
-    Terminal::new(backend)
+    Ok(Terminal::new(backend)?)
 }
 
 /// Initialize a terminal with the given options and reasonable defaults.
@@ -164,13 +173,15 @@ pub fn init_with_options(options: TerminalOptions) -> DefaultTerminal {
 ///     viewport: Viewport::Inline(5),
 /// };
 /// let terminal = ratatui::try_init_with_options(options)?;
-/// # Ok::<(), std::io::Error>(())
+/// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
-pub fn try_init_with_options(options: TerminalOptions) -> io::Result<DefaultTerminal> {
+pub fn try_init_with_options(
+    options: TerminalOptions,
+) -> Result<DefaultTerminal, InitializationError> {
     set_panic_hook();
     enable_raw_mode()?;
     let backend = CrosstermBackend::new(stdout());
-    Terminal::with_options(backend, options)
+    Ok(Terminal::with_options(backend, options)?)
 }
 
 /// Restores the terminal to its original state.
