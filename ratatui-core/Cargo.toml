@@ -55,7 +55,7 @@ lru = "0.12.0"
 palette = { version = "0.7.6", optional = true }
 serde = { workspace = true, optional = true }
 strum.workspace = true
-thiserror = "2"
+thiserror = { workspace = true }
 unicode-segmentation.workspace = true
 unicode-truncate = "2"
 unicode-width.workspace = true

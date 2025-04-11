@@ -38,6 +38,7 @@ crossterm.workspace = true
 document-features = { workspace = true, optional = true }
 instability.workspace = true
 ratatui-core = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 ratatui = { path = "../ratatui", features = ["crossterm"] }

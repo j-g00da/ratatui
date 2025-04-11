@@ -25,6 +25,25 @@ pub use termion;
 use termion::color::Color as _;
 use termion::{color as tcolor, style as tstyle};
 
+/// Represents errors that can occur in the `TermionBackend`.
+///
+/// This enum encapsulates different types of errors that may arise while using the
+/// `TermionBackend`.
+#[derive(thiserror::Error, Debug)]
+pub enum TermionBackendError {
+    /// Represents an I/O error.
+    #[error("IO Error: {0}")]
+    IoErr(#[from] io::Error),
+}
+
+impl ratatui_core::backend::Error for TermionBackendError {
+    fn kind(&self) -> ratatui_core::backend::ErrorKind {
+        match self {
+            Self::IoErr(_) => ratatui_core::backend::ErrorKind::Other,
+        }
+    }
+}
+
 /// A [`Backend`] implementation that uses [Termion] to render to the terminal.
 ///
 /// The `TermionBackend` struct is a wrapper around a writer implementing [`Write`], which is used
@@ -140,7 +159,7 @@ impl<W> Backend for TermionBackend<W>
 where
     W: Write,
 {
-    type Error = io::Error;
+    type Error = TermionBackendError;
 
     fn clear(&mut self) -> Result<(), Self::Error> {
         self.clear_region(ClearType::All)
@@ -154,35 +173,42 @@ where
             ClearType::CurrentLine => write!(self.writer, "{}", termion::clear::CurrentLine)?,
             ClearType::UntilNewLine => write!(self.writer, "{}", termion::clear::UntilNewline)?,
         }
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     fn append_lines(&mut self, n: u16) -> Result<(), Self::Error> {
         for _ in 0..n {
             writeln!(self.writer)?;
         }
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     fn hide_cursor(&mut self) -> Result<(), Self::Error> {
         write!(self.writer, "{}", termion::cursor::Hide)?;
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     fn show_cursor(&mut self) -> Result<(), Self::Error> {
         write!(self.writer, "{}", termion::cursor::Show)?;
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     fn get_cursor_position(&mut self) -> Result<Position, Self::Error> {
-        termion::cursor::DetectCursorPos::cursor_pos(&mut self.writer)
-            .map(|(x, y)| Position { x: x - 1, y: y - 1 })
+        Ok(
+            termion::cursor::DetectCursorPos::cursor_pos(&mut self.writer)
+                .map(|(x, y)| Position { x: x - 1, y: y - 1 })?,
+        )
     }
 
     fn set_cursor_position<P: Into<Position>>(&mut self, position: P) -> Result<(), Self::Error> {
         let Position { x, y } = position.into();
         write!(self.writer, "{}", termion::cursor::Goto(x + 1, y + 1))?;
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     fn draw<'a, I>(&mut self, content: I) -> Result<(), Self::Error>
@@ -224,13 +250,16 @@ where
             }
             string.push_str(cell.symbol());
         }
+
         write!(
             self.writer,
             "{string}{}{}{}",
             Fg(Color::Reset),
             Bg(Color::Reset),
             termion::style::Reset,
-        )
+        )?;
+
+        Ok(())
     }
 
     fn size(&self) -> Result<Size, Self::Error> {
@@ -246,7 +275,8 @@ where
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     #[cfg(feature = "scrolling-regions")]
@@ -262,7 +292,8 @@ where
             termion::scroll::Up(amount),
             ResetRegion,
         )?;
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     #[cfg(feature = "scrolling-regions")]
@@ -278,7 +309,8 @@ where
             termion::scroll::Down(amount),
             ResetRegion,
         )?;
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 }
 struct Fg(Color);

@@ -100,8 +100,6 @@
 //! [Examples]: https://github.com/ratatui/ratatui/tree/main/ratatui/examples/README.md
 //! [Backend Comparison]: https://ratatui.rs/concepts/backends/comparison/
 //! [Ratatui Website]: https://ratatui.rs
-use core::ops;
-
 use strum::{Display, EnumString};
 
 use crate::buffer::Cell;
@@ -139,6 +137,37 @@ pub struct WindowSize {
     pub pixels: Size,
 }
 
+/// A trait for backend errors that provides a `kind` method to get the [`ErrorKind`].
+pub trait Error: core::error::Error {
+    /// Returns the kind of error.
+    fn kind(&self) -> ErrorKind;
+}
+
+impl Error for core::convert::Infallible {
+    fn kind(&self) -> ErrorKind {
+        match *self {}
+    }
+}
+
+/// Represents the different kinds of errors that can occur in a backend.
+#[derive(thiserror::Error, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum ErrorKind {
+    /// The clear type requested is not supported by the backend.
+    #[error("Clear type not supported.")]
+    ClearTypeNotSupported,
+    /// An unknown error occurred.
+    #[error("An unknown error occurred.")]
+    Other,
+}
+
+impl Error for ErrorKind {
+    #[inline]
+    fn kind(&self) -> ErrorKind {
+        *self
+    }
+}
+
 /// The `Backend` trait provides an abstraction over different terminal libraries. It defines the
 /// methods required to draw content, manipulate the cursor, and clear the terminal screen.
 ///
@@ -148,7 +177,7 @@ pub struct WindowSize {
 /// [`Terminal`]: https://docs.rs/ratatui/latest/ratatui/struct.Terminal.html
 pub trait Backend {
     /// Error type associated with this Backend.
-    type Error: core::error::Error;
+    type Error: Error;
 
     /// Draw the given content to the terminal screen.
     ///
@@ -250,7 +279,10 @@ pub trait Backend {
     /// backend.clear()?;
     /// # std::io::Result::Ok(())
     /// ```
-    fn clear(&mut self) -> Result<(), Self::Error>;
+    fn clear(&mut self) -> Result<(), Self::Error> {
+        self.clear_region(ClearType::All)?;
+        Ok(())
+    }
 
     /// Clears a specific region of the terminal specified by the [`ClearType`] parameter
     ///
@@ -335,7 +367,7 @@ pub trait Backend {
     #[cfg(feature = "scrolling-regions")]
     fn scroll_region_up(
         &mut self,
-        region: ops::Range<u16>,
+        region: core::ops::Range<u16>,
         line_count: u16,
     ) -> Result<(), Self::Error>;
 
@@ -360,7 +392,7 @@ pub trait Backend {
     #[cfg(feature = "scrolling-regions")]
     fn scroll_region_down(
         &mut self,
-        region: ops::Range<u16>,
+        region: core::ops::Range<u16>,
         line_count: u16,
     ) -> Result<(), Self::Error>;
 }

@@ -2,14 +2,24 @@
 //! It is used in the integration tests to verify the correctness of the library.
 
 use core::fmt::{self, Write};
-use core::{iter, ops};
-use std::io;
+use core::iter;
 
 use unicode_width::UnicodeWidthStr;
 
+use super::{Error, ErrorKind};
 use crate::backend::{Backend, ClearType, WindowSize};
 use crate::buffer::{Buffer, Cell};
 use crate::layout::{Position, Rect, Size};
+
+/// The error type for [`TestBackend`].
+#[derive(thiserror::Error, Debug)]
+pub enum TestBackendError {}
+
+impl Error for TestBackendError {
+    fn kind(&self) -> ErrorKind {
+        match *self {}
+    }
+}
 
 /// A [`Backend`] implementation used for integration testing that renders to an memory buffer.
 ///
@@ -232,7 +242,7 @@ impl fmt::Display for TestBackend {
 }
 
 impl Backend for TestBackend {
-    type Error = io::Error;
+    type Error = TestBackendError;
 
     fn draw<'a, I>(&mut self, content: I) -> Result<(), Self::Error>
     where
@@ -368,7 +378,7 @@ impl Backend for TestBackend {
     #[cfg(feature = "scrolling-regions")]
     fn scroll_region_up(
         &mut self,
-        region: ops::Range<u16>,
+        region: core::ops::Range<u16>,
         scroll_by: u16,
     ) -> Result<(), Self::Error> {
         let width: usize = self.buffer.area.width.into();
@@ -418,7 +428,7 @@ impl Backend for TestBackend {
     #[cfg(feature = "scrolling-regions")]
     fn scroll_region_down(
         &mut self,
-        region: ops::Range<u16>,
+        region: core::ops::Range<u16>,
         scroll_by: u16,
     ) -> Result<(), Self::Error> {
         let width: usize = self.buffer.area.width.into();
@@ -919,7 +929,7 @@ mod tests {
     }
 
     #[test]
-    fn append_lines_truncates_beyond_u16_max() -> io::Result<()> {
+    fn append_lines_truncates_beyond_u16_max() -> Result<(), TestBackendError> {
         let mut backend = TestBackend::new(10, 5);
 
         // Fill the scrollback with 65535 + 10 lines.
@@ -1033,7 +1043,7 @@ mod tests {
         #[case([A, B, C, D, E], 2..2, 2, [],                    [A, B, C, D, E])]
         fn scroll_region_up<const L: usize, const M: usize, const N: usize>(
             #[case] initial_screen: [&'static str; L],
-            #[case] range: ops::Range<u16>,
+            #[case] range: core::ops::Range<u16>,
             #[case] scroll_by: u16,
             #[case] expected_scrollback: [&'static str; M],
             #[case] expected_buffer: [&'static str; N],
@@ -1067,7 +1077,7 @@ mod tests {
         #[case([A, B, C, D, E], 2..2, 2, [A, B, C, D, E])]
         fn scroll_region_down<const M: usize, const N: usize>(
             #[case] initial_screen: [&'static str; M],
-            #[case] range: ops::Range<u16>,
+            #[case] range: core::ops::Range<u16>,
             #[case] scroll_by: u16,
             #[case] expected_buffer: [&'static str; N],
         ) {

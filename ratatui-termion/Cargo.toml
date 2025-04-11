@@ -33,6 +33,7 @@ document-features = { workspace = true, optional = true }
 instability.workspace = true
 ratatui-core = { workspace = true }
 termion.workspace = true
+thiserror = { workspace = true }
 
 [dev-dependencies]
 rstest.workspace = true

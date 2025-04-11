@@ -31,6 +31,22 @@ use ratatui_core::buffer::Cell;
 use ratatui_core::layout::{Position, Size};
 use ratatui_core::style::{Color, Modifier, Style};
 
+/// An error type for handling issues that arise in [`CrosstermBackend`].
+#[derive(thiserror::Error, Debug)]
+pub enum CrosstermBackendError {
+    /// Represents an I/O error.
+    #[error("IO Error: {0}")]
+    IoErr(#[from] io::Error),
+}
+
+impl ratatui_core::backend::Error for CrosstermBackendError {
+    fn kind(&self) -> ratatui_core::backend::ErrorKind {
+        match *self {
+            Self::IoErr(_) => ratatui_core::backend::ErrorKind::Other,
+        }
+    }
+}
+
 /// A [`Backend`] implementation that uses [Crossterm] to render to the terminal.
 ///
 /// The `CrosstermBackend` struct is a wrapper around a writer implementing [`Write`], which is
@@ -75,7 +91,7 @@ use ratatui_core::style::{Color, Modifier, Style};
 /// stdout().execute(LeaveAlternateScreen)?;
 /// disable_raw_mode()?;
 ///
-/// # std::io::Result::Ok(())
+/// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
 ///
 /// See the the [Examples] directory for more examples. See the [`backend`] module documentation
@@ -157,7 +173,7 @@ impl<W> Backend for CrosstermBackend<W>
 where
     W: Write,
 {
-    type Error = io::Error;
+    type Error = CrosstermBackendError;
 
     fn draw<'a, I>(&mut self, content: I) -> Result<(), Self::Error>
     where
@@ -205,43 +221,42 @@ where
         }
 
         #[cfg(feature = "underline-color")]
-        return queue!(
+        queue!(
             self.writer,
             SetForegroundColor(CrosstermColor::Reset),
             SetBackgroundColor(CrosstermColor::Reset),
             SetUnderlineColor(CrosstermColor::Reset),
             SetAttribute(CrosstermAttribute::Reset),
-        );
+        )?;
         #[cfg(not(feature = "underline-color"))]
-        return queue!(
+        queue!(
             self.writer,
             SetForegroundColor(CrosstermColor::Reset),
             SetBackgroundColor(CrosstermColor::Reset),
             SetAttribute(CrosstermAttribute::Reset),
-        );
+        )?;
+
+        Ok(())
     }
 
     fn hide_cursor(&mut self) -> Result<(), Self::Error> {
-        execute!(self.writer, Hide)
+        execute!(self.writer, Hide)?;
+        Ok(())
     }
 
     fn show_cursor(&mut self) -> Result<(), Self::Error> {
-        execute!(self.writer, Show)
+        execute!(self.writer, Show)?;
+        Ok(())
     }
 
     fn get_cursor_position(&mut self) -> Result<Position, Self::Error> {
-        crossterm::cursor::position()
-            .map(|(x, y)| Position { x, y })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))
+        Ok(crossterm::cursor::position().map(|(x, y)| Position { x, y })?)
     }
 
     fn set_cursor_position<P: Into<Position>>(&mut self, position: P) -> Result<(), Self::Error> {
         let Position { x, y } = position.into();
-        execute!(self.writer, MoveTo(x, y))
-    }
-
-    fn clear(&mut self) -> Result<(), Self::Error> {
-        self.clear_region(ClearType::All)
+        execute!(self.writer, MoveTo(x, y))?;
+        Ok(())
     }
 
     fn clear_region(&mut self, clear_type: ClearType) -> Result<(), Self::Error> {
@@ -254,14 +269,16 @@ where
                 ClearType::CurrentLine => crossterm::terminal::ClearType::CurrentLine,
                 ClearType::UntilNewLine => crossterm::terminal::ClearType::UntilNewLine,
             })
-        )
+        )?;
+        Ok(())
     }
 
     fn append_lines(&mut self, n: u16) -> Result<(), Self::Error> {
         for _ in 0..n {
             queue!(self.writer, Print("\n"))?;
         }
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     fn size(&self) -> Result<Size, Self::Error> {
@@ -286,7 +303,8 @@ where
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     #[cfg(feature = "scrolling-regions")]
@@ -303,7 +321,8 @@ where
                 lines_to_scroll: amount,
             }
         )?;
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 
     #[cfg(feature = "scrolling-regions")]
@@ -320,7 +339,8 @@ where
                 lines_to_scroll: amount,
             }
         )?;
-        self.writer.flush()
+        self.writer.flush()?;
+        Ok(())
     }
 }
 
